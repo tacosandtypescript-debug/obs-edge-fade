@@ -7,7 +7,7 @@ profiling on real hardware.
 
 ## Budget
 
-| Filter | Render targets | Passes | Per-frame allocations |
+| Filter | Intermediate buffers | Passes | Per-frame allocations |
 |---|---|---|---|
 | Edge Fade | 0 | 1 | 0 |
 

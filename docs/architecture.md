@@ -14,7 +14,7 @@ src/
   common/                      shared, low-level helpers
     obs-edge-fade-common.h     plugin ID, filter ID, limits, shared enums
     log.h                      prefixed logging macros
-    math-utils.*               clamp and small numeric helpers
+    math-utils.h               inline integer clamp helper
     color-space.*              supported spaces and target colour lookup
     shader-loader.*            obs_module_file + gs_effect_create_from_file
   edge-fade/                   filter + settings + properties

@@ -30,7 +30,6 @@ target_sources(
   ${CMAKE_PROJECT_NAME}
   PRIVATE
     src/plugin-main.c
-    src/common/math-utils.c
     src/common/color-space.c
     src/common/shader-loader.c
     src/edge-fade/edge-fade-filter.c

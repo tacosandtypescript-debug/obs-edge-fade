@@ -100,7 +100,7 @@ Do not claim HDR support until these pass; see [testing.md](testing.md).
 Use **OBS Stats**, Task Manager (GPU engine) and the OBS log; see
 [performance.md](performance.md).
 
-- [ ] Edge Fade uses a single GPU pass and no extra targets.
+- [ ] Edge Fade uses a single GPU pass and no extra buffers.
 - [ ] VRAM stays flat while the filter is enabled (nothing is recreated per
       frame).
 - [ ] Stress: 10 sources with Edge Fade.

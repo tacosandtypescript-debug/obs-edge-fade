@@ -16,9 +16,9 @@ ctest --test-dir build_tests --output-on-failure
 
 Covered today:
 
-- `math-utils`: clamp helpers and the shared numeric utilities.
-- `edge-fade-settings`: defaults, linked sides, clamping of the sides, smoothness
-  and curve, and bypass.
+- `edge-fade-settings`: defaults, linked sides (including the no-previous-state
+  path), clamping of the sides, smoothness and curve, bypass and the NULL guards.
+  It also covers the inline integer clamp in `math-utils.h`.
 
 ## Visual fixtures
 

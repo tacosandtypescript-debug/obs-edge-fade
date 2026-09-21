@@ -7,7 +7,7 @@ parameters, manages lifetimes and chooses bypass.
 
 ## Edge Fade
 
-Single pass, no extra render target:
+Single pass, no extra buffer:
 
 ~~~text
 source texture
@@ -19,7 +19,7 @@ source texture
 
 The filter keeps the source size and leaves interior alpha untouched.
 `Smoothness` (0-100 %) decides how much of the fade extent is used by the
-transition: 0 concentrates it near the edge and 100 spreads it across the whole
+transition: 0 concentrates it near the edge and 100 stretches it across the whole
 extent. `Curve` selects the falloff shape (Linear, Smooth, Soft) and the final
 factor is the minimum of the four sides, which keeps corners smooth.
 

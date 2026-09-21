@@ -23,10 +23,7 @@ function(oss_add_unit_test name)
   add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
-oss_add_unit_test(test-math-utils "${OSS_SRC}/common/math-utils.c")
-
 oss_add_unit_test(
   test-edge-fade-settings
-  "${OSS_SRC}/common/math-utils.c"
   "${OSS_SRC}/edge-fade/edge-fade-settings.c"
 )
