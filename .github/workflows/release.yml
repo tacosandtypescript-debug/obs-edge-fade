@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    tags: ['*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Windows x64 release
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate tag
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_name }}" -notmatch '^[0-9]+\.[0-9]+\.[0-9]+([-+].*)?$') {
+            Write-Error "Tag ${{ github.ref_name }} is not a semantic version"
+          }
+
+      - name: Build plugin
+        uses: ./.github/actions/build-plugin
+
+      - name: Package
+        id: package
+        shell: pwsh
+        run: |
+          $buildspec = Get-Content buildspec.json -Raw | ConvertFrom-Json
+          $archive = "$($buildspec.name)-$($buildspec.version)-windows-x64.zip"
+          Compress-Archive -Path "release/*" -DestinationPath $archive -Force
+          "archive=$archive" | Out-File -Append -Encoding ascii -FilePath $env:GITHUB_OUTPUT
+          "$((Get-FileHash -Algorithm SHA256 $archive).Hash.ToLower())  $archive" | Out-File -Encoding ascii CHECKSUMS.txt
+          Get-Content CHECKSUMS.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        # The release files are uploaded by the Draft release step below; a full
+        # artifact-storage quota must not block the release.
+        continue-on-error: true
+        with:
+          name: obs-edge-fade-windows-x64
+          path: "*.zip"
+          if-no-files-found: error
+
+      - name: Draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          body_path: CHECKSUMS.txt
+          files: |
+            ${{ steps.package.outputs.archive }}
+            CHECKSUMS.txt

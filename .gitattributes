@@ -1,0 +1,8 @@
+# Normalise line endings so clang-format and CI agree on every platform.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.zip binary

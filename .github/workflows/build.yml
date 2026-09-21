@@ -1,0 +1,45 @@
+name: Build
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['*']
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-x64:
+    name: Windows x64
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build plugin
+        uses: ./.github/actions/build-plugin
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $buildspec = Get-Content buildspec.json -Raw | ConvertFrom-Json
+          $archive = "$($buildspec.name)-$($buildspec.version)-windows-x64.zip"
+          Compress-Archive -Path "release/*" -DestinationPath $archive -Force
+          Write-Output "Created $archive"
+          Get-Item $archive | Select-Object Name, Length
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        # A full account artifact-storage quota must not turn a good build red.
+        continue-on-error: true
+        with:
+          name: obs-edge-fade-windows-x64
+          path: "*.zip"
+          if-no-files-found: error

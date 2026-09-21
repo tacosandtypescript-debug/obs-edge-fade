@@ -1,0 +1,82 @@
+/*
+ * OBS Edge Fade - Edge Fade
+ *
+ * Single-pass alpha fade near the source edges.
+ *
+ * fade is (left, right, top, bottom) in pixels.
+ * smoothness is 0..1: 0 concentrates the transition at the very edge, 1 spreads
+ * it across the whole fade extent.
+ * curve_mode selects the falloff shape: 0 linear, 1 smooth, 2 soft.
+ *
+ * Positions use v_in.uv * source_size, i.e. y grows downwards with the origin at
+ * the top-left corner.
+ */
+
+uniform float4x4 ViewProj;
+uniform texture2d image;
+
+uniform float2 source_size;
+uniform float4 fade;
+uniform float smoothness;
+uniform float curve_mode;
+
+sampler_state def_sampler {
+	Filter   = Linear;
+	AddressU = Clamp;
+	AddressV = Clamp;
+};
+
+struct VertInOut {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertInOut VSDefault(VertInOut vert_in)
+{
+	VertInOut vert_out;
+
+	vert_out.pos = mul(float4(vert_in.pos.xyz, 1.0), ViewProj);
+	vert_out.uv = vert_in.uv;
+	return vert_out;
+}
+
+float edge_factor(float distance, float extent, float softness, float mode)
+{
+	if (extent <= 0.0)
+		return 1.0;
+
+	float start = extent * (1.0 - clamp(softness, 0.0, 1.0));
+	float width = max(extent - start, 0.0001);
+	float t = clamp((distance - start) / width, 0.0, 1.0);
+
+	if (mode < 0.5)
+		return t;
+	if (mode < 1.5)
+		return t * t * (3.0 - 2.0 * t);
+	return 1.0 - (1.0 - t) * (1.0 - t) * (1.0 - t);
+}
+
+float4 PSEdgeFade(VertInOut vert_in) : TARGET
+{
+	float4 rgba = image.Sample(def_sampler, vert_in.uv);
+	float2 position = vert_in.uv * source_size;
+
+	float left = edge_factor(position.x, fade.x, smoothness, curve_mode);
+	float right = edge_factor(source_size.x - position.x, fade.y, smoothness, curve_mode);
+	float top = edge_factor(position.y, fade.z, smoothness, curve_mode);
+	float bottom = edge_factor(source_size.y - position.y, fade.w, smoothness, curve_mode);
+
+	/* The strongest fade wins, which keeps corners smooth. */
+	float factor = min(min(left, right), min(top, bottom));
+
+	return rgba * factor;
+}
+
+technique Draw
+{
+	pass
+	{
+		vertex_shader = VSDefault(vert_in);
+		pixel_shader  = PSEdgeFade(vert_in);
+	}
+}

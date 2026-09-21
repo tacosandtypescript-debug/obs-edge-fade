@@ -1,0 +1,31 @@
+{
+    "dependencies": {
+        "obs-studio": {
+            "version": "32.2.2",
+            "baseUrl": "https://github.com/obsproject/obs-studio/archive/refs/tags",
+            "label": "OBS sources",
+            "hashes": {
+                "windows-x64": "f15f001f1fa526405318835f44f9910046502f496ebc3a30d5296a5018b831aa"
+            }
+        },
+        "prebuilt": {
+            "version": "2026-07-15",
+            "baseUrl": "https://github.com/obsproject/obs-deps/releases/download",
+            "label": "Pre-Built obs-deps",
+            "hashes": {
+                "windows-x64": "6f90e9598fa10cff5ad23cdcfae49b87868c07bf896b02cd464582b4ce2f2ba9"
+            }
+        }
+    },
+    "platformConfig": {
+        "macos": {
+            "bundleId": "com.obsproject.obs-edge-fade"
+        }
+    },
+    "name": "obs-edge-fade",
+    "displayName": "OBS Edge Fade",
+    "version": "0.1.0",
+    "author": "OBS Edge Fade contributors",
+    "website": "https://github.com/tacosandtypescript-debug/obs-edge-fade",
+    "email": "noreply@example.com"
+}
