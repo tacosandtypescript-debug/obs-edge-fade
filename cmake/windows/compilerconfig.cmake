@@ -6,6 +6,25 @@ include(compiler_common)
 
 set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT ProgramDatabase)
 
+# CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION is only populated by the Visual
+# Studio generator. Ninja and NMake builds take the SDK from the developer
+# command prompt, so the SDK the host actually selected is used instead. The
+# resolved value is cached because the OBS sources sub-build needs it too.
+if(NOT CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION)
+  if(CMAKE_SYSTEM_VERSION)
+    set(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION "${CMAKE_SYSTEM_VERSION}")
+  else()
+    set(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION "${CMAKE_HOST_SYSTEM_VERSION}")
+  endif()
+  set(
+    CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION
+    "${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}"
+    CACHE STRING
+    "Windows SDK version used for this build"
+    FORCE
+  )
+endif()
+
 message(DEBUG "Current Windows API version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 if(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION_MAXIMUM)
   message(DEBUG "Maximum Windows API version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION_MAXIMUM}")

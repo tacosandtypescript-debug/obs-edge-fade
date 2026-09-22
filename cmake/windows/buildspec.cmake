@@ -8,7 +8,14 @@ include(buildspec_common)
 # OBS Edge Fade builds libobs without Qt or frontend-API dependencies, so only
 # the pre-built obs-deps and the OBS sources are required.
 function(_check_dependencies_windows)
-  set(arch ${CMAKE_VS_PLATFORM_NAME})
+  # CMAKE_VS_PLATFORM_NAME only exists for Visual Studio generators. Ninja and
+  # NMake builds still target x64 here, so fall back to the host architecture
+  # instead of producing an empty "windows-" platform key.
+  if(CMAKE_VS_PLATFORM_NAME)
+    set(arch ${CMAKE_VS_PLATFORM_NAME})
+  else()
+    set(arch x64)
+  endif()
   set(platform windows-${arch})
 
   set(dependencies_dir "${CMAKE_CURRENT_SOURCE_DIR}/.deps")

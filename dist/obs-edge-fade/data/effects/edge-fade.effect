@@ -1,0 +1,148 @@
+/*
+ * OBS Edge Fade - Edge Fade
+ *
+ * Single-pass alpha fade near the source edges.
+ *
+ * Goal of the filter:
+ *
+ *   interior = 100% visible -> progressive gradient -> outer border = fully
+ *   transparent.
+ *
+ * A side configured with N pixels therefore produces:
+ *
+ *   distance 0 px  (the very border) -> alpha factor 0
+ *   distance N px  (and inwards)     -> alpha factor 1
+ *
+ * and everything in between grows monotonically, so the transition always spans
+ * the full configured width and always reaches alpha 0 exactly on the border.
+ *
+ * Uniforms:
+ *   fade is (left, right, top, bottom) in pixels.
+ *   smoothness is 0..1 and only shapes the falloff inside the fade width; it
+ *   never moves the endpoints, so alpha stays 0 on the border and 1 at the fade
+ *   distance for every smoothness value.
+ *   curve_mode selects the falloff shape: 0 linear, 1 smooth, 2 soft.
+ *
+ * Positions use v_in.uv * source_size, i.e. y grows downwards with the origin at
+ * the top-left corner.
+ */
+
+uniform float4x4 ViewProj;
+uniform texture2d image;
+
+uniform float2 source_size;
+uniform float4 fade;
+uniform float smoothness;
+uniform float curve_mode;
+
+sampler_state def_sampler {
+	Filter   = Linear;
+	AddressU = Clamp;
+	AddressV = Clamp;
+};
+
+struct VertInOut {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertInOut VSDefault(VertInOut vert_in)
+{
+	VertInOut vert_out;
+
+	vert_out.pos = mul(float4(vert_in.pos.xyz, 1.0), ViewProj);
+	vert_out.uv = vert_in.uv;
+	return vert_out;
+}
+
+float smoothstep01(float t)
+{
+	return t * t * (3.0 - 2.0 * t);
+}
+
+/* Keeps the endpoints and zero slope at both ends, so a curve built from it
+ * never shows a seam where the fade band starts. */
+float smootherstep01(float t)
+{
+	return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+}
+
+/*
+ * Maps "how far inside the fade band am I" (0 on the border, 1 at the fade
+ * distance) to an alpha factor.
+ *
+ * Every curve keeps f(0) = 0 and f(1) = 1, which is what guarantees that the
+ * border is fully transparent and the interior is untouched:
+ *
+ *   Linear -> straight ramp, constant falloff across the whole fade width.
+ *   Smooth -> smoothstep towards smootherstep. More smoothness flattens both
+ *             ends, so the visible transition moves to the middle of the band.
+ *   Soft   -> quadratic towards a gentler cubic. It stays below Smooth across
+ *             the whole band, so it is the most gradual of the three and the
+ *             border never shows a perceptible line.
+ *
+ * All three families have a bounded slope, so no combination of curve and
+ * smoothness can collapse the fade into a hard edge.
+ */
+float edge_curve(float t, float smoothness, float mode)
+{
+	const float s = clamp(smoothness, 0.0, 1.0);
+
+	t = clamp(t, 0.0, 1.0);
+
+	if (mode < 0.5)
+		return t;
+
+	if (mode < 1.5)
+		return lerp(smoothstep01(t), smootherstep01(t), s);
+
+	const float quadratic = t * t;
+	const float gentle = t * t * (2.0 - t);
+	return lerp(quadratic, gentle, s);
+}
+
+/*
+ * distance is how far the pixel sits from that particular edge, extent is the
+ * configured fade size in pixels for that edge. An extent of 0 disables the
+ * side without affecting the others.
+ */
+float edge_factor(float distance, float extent, float smoothness, float mode)
+{
+	if (extent <= 0.0)
+		return 1.0;
+
+	return edge_curve(distance / extent, smoothness, mode);
+}
+
+float4 PSEdgeFade(VertInOut vert_in) : TARGET
+{
+	float4 rgba = image.Sample(def_sampler, vert_in.uv);
+	float2 position = vert_in.uv * source_size;
+
+	float left = edge_factor(position.x, fade.x, smoothness, curve_mode);
+	float right = edge_factor(source_size.x - position.x, fade.y, smoothness, curve_mode);
+	float top = edge_factor(position.y, fade.z, smoothness, curve_mode);
+	float bottom = edge_factor(source_size.y - position.y, fade.w, smoothness, curve_mode);
+
+	/*
+	 * Multiplying the four factors keeps the corners clean: two crossing fades
+	 * can only ever make the corner more transparent, never brighter, and the
+	 * fade of one side never bleeds past its own extent. min() would behave the
+	 * same for these curves but the product stays correct for any curve shape.
+	 */
+	float factor = left * right * top * bottom;
+
+	/* Premultiplied output: the texture is already premultiplied, so scaling
+	 * both terms keeps the compositing invariant intact and only alpha decides
+	 * how visible the pixel is. */
+	return rgba * factor;
+}
+
+technique Draw
+{
+	pass
+	{
+		vertex_shader = VSDefault(vert_in);
+		pixel_shader  = PSEdgeFade(vert_in);
+	}
+}

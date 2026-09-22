@@ -5,10 +5,12 @@
 !/.github
 !/cmake
 !/data
+!/dist
 !/docs
 !/src
 !/tests
 !/scripts
+!/tools
 !/.clang-format
 !/.gersemirc
 !/.gitattributes
@@ -23,6 +25,11 @@
 
 # Exclude lock files
 *.lock.json
+
+# Exclude the test harness output and Python caches it creates
+/tools/out/
+__pycache__/
+*.pyc
 
 # Exclude macOS legacy resource forks
 .DS_Store

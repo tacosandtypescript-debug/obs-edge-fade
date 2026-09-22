@@ -52,24 +52,55 @@ function(_setup_obs_studio)
     set(_is_fresh --fresh)
   endif()
 
+  # Arguments are collected as a list so each one reaches the sub-build intact.
+  set(_cmake_generator "${CMAKE_GENERATOR}")
+  set(_cmake_args
+      -S "${dependencies_dir}/${_obs_destination}"
+      -B "${dependencies_dir}/${_obs_destination}/build_${arch}"
+      -G "${_cmake_generator}"
+  )
+
   if(OS_WINDOWS)
-    set(_cmake_generator "${CMAKE_GENERATOR}")
-    set(_cmake_arch "-A ${arch},version=${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
-    set(_cmake_extra "-DCMAKE_SYSTEM_VERSION=${CMAKE_SYSTEM_VERSION} -DCMAKE_ENABLE_SCRIPTING=OFF")
+    if(CMAKE_GENERATOR MATCHES "Visual Studio")
+      # Only Visual Studio generators accept the architecture switch, and they
+      # discover the Windows SDK through MSBuild.
+      list(APPEND _cmake_args "-A" "${arch},version=${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
+    else()
+      # Ninja and NMake take the toolchain from the developer command prompt, so
+      # the Windows SDK version has to be forwarded explicitly. OBS also reads
+      # CMAKE_VS_PLATFORM_NAME to name the obs-deps archive and to pick the
+      # architecture, and OBS_PARENT_ARCHITECTURE keeps it from spawning the
+      # 32-bit helper build that only Visual Studio can drive.
+      set(_sdk_version_list
+          "-DCMAKE_SYSTEM_VERSION=${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}"
+          "-DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}"
+          "-DCMAKE_VS_PLATFORM_NAME=${arch}"
+          "-DOBS_PARENT_ARCHITECTURE=${arch}"
+      )
+      list(APPEND _cmake_args ${_sdk_version_list})
+    endif()
   elseif(OS_MACOS)
-    set(_cmake_generator "Xcode")
-    set(_cmake_arch "-DCMAKE_OSX_ARCHITECTURES:STRING='arm64;x86_64'")
-    set(_cmake_extra "-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+    list(APPEND _cmake_args "-DCMAKE_OSX_ARCHITECTURES:STRING=arm64;x86_64")
+    list(APPEND _cmake_args "-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+  endif()
+
+  list(
+    APPEND
+    _cmake_args
+    -DOBS_CMAKE_VERSION:STRING=3.0.0
+    -DENABLE_PLUGINS:BOOL=OFF
+    -DENABLE_FRONTEND:BOOL=OFF
+    "-DOBS_VERSION_OVERRIDE:STRING=${_obs_version}"
+    "-DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}"
+  )
+
+  if(_is_fresh)
+    list(APPEND _cmake_args --fresh)
   endif()
 
   message(STATUS "Configure ${label} (${arch})")
   execute_process(
-    COMMAND
-      "${CMAKE_COMMAND}" -S "${dependencies_dir}/${_obs_destination}" -B
-      "${dependencies_dir}/${_obs_destination}/build_${arch}" -G ${_cmake_generator} "${_cmake_arch}"
-      -DOBS_CMAKE_VERSION:STRING=3.0.0 -DENABLE_PLUGINS:BOOL=OFF -DENABLE_FRONTEND:BOOL=OFF
-      -DOBS_VERSION_OVERRIDE:STRING=${_obs_version} "-DCMAKE_PREFIX_PATH='${CMAKE_PREFIX_PATH}'" ${_is_fresh}
-      ${_cmake_extra}
+    COMMAND "${CMAKE_COMMAND}" ${_cmake_args}
     RESULT_VARIABLE _process_result
     COMMAND_ERROR_IS_FATAL ANY
     OUTPUT_QUIET
