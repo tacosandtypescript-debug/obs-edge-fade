@@ -4,6 +4,36 @@ All notable changes to OBS Edge Fade are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] - 2026-09-21
+
+Installing no longer means copying folders by hand.
+
+### Added
+
+- **`OBS-Edge-Fade-Setup-<version>.exe`**, a standalone installer. It locates
+  OBS, picks the plugins folder OBS actually reads (preferring an existing
+  installation so re-running upgrades in place), copies the plugin, verifies
+  every file byte for byte, and offers to close OBS when it is running because
+  plugins are only loaded at startup.
+  - a single .NET executable with no dependencies beyond the framework that
+    ships with Windows, so nothing has to be installed first
+  - no administrator rights needed; it asks for elevation by itself only if the
+    target folder turns out to be read-only
+  - `/uninstall` removes the plugin, `/silent` runs either action without a
+    window and reports through the exit code
+  - the plugin files are embedded in the executable, so it can never drift from
+    what is in `dist/`
+- `installer/Installer.cs` and `tools/build-installer.ps1`,
+  `tools/make-installer-payload.ps1`, `tools/make-icon.ps1`.
+- `tools/check-install.ps1` verifies an installation without launching OBS.
+- `docs/instalacion.md`: step by step guide in Spanish, with the common mistakes
+  and how to unblock the downloaded file.
+
+### Changed
+
+- `tools/package-release.ps1` now builds the installer too, so the archive and
+  the executable always come from the same payload.
+
 ## [0.2.0] - 2026-09-21
 
 First release with the corrected fade maths, the linked-borders UI and a

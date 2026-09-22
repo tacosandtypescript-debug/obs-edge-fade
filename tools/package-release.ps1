@@ -1,14 +1,15 @@
-# Assembles the installable plugin folder and the downloadable archive.
+# Assembles the installable plugin folder and the downloadable artefacts.
 #
 #   pwsh -NoProfile -File tools/package-release.ps1
 #
 # Produces:
-#   dist/obs-edge-fade/bin/64bit/obs-edge-fade.dll
+#   dist/obs-edge-fade/bin/64bit/obs-edge-fade.dll   the installable tree
 #   dist/obs-edge-fade/data/...
-#   release/obs-edge-fade-<version>-windows-x64.zip
+#   installer/out/OBS-Edge-Fade-Setup-<version>.exe  the standalone installer
+#   release/obs-edge-fade-<version>-windows-x64.zip  the manual install archive
 #
-# Unzipping that archive into %ProgramData%\obs-studio\plugins\ (or extracting
-# the dist folder there) makes OBS pick the filter up on the next launch.
+# Unzipping the archive into %ProgramData%\obs-studio\plugins\ (or running the
+# installer) makes OBS pick the filter up on the next launch.
 
 [CmdletBinding()]
 param([string] $Dll = 'build_manual\obs-edge-fade.dll')
@@ -55,3 +56,9 @@ Write-Host 'contents:'
 Get-ChildItem $dist -Recurse -File | ForEach-Object {
     Write-Host ("  {0} ({1} bytes)" -f $_.FullName.Substring($dist.Length + 1), $_.Length)
 }
+
+# --- standalone installer -------------------------------------------------
+# Built from the payload that was just refreshed, so the two can never drift.
+Write-Host ''
+Write-Host 'building the installer...'
+& (Join-Path $PSScriptRoot 'build-installer.ps1')

@@ -3,32 +3,89 @@
 <!-- markdownlint-disable MD013 -->
 
 Requiere **Windows 10/11 x64** y **OBS Studio 32.2.x**. No hace falta compilar
-nada ni instalar herramientas: el plugin ya viene compilado.
+nada ni tener ninguna herramienta instalada.
 
-## 1. Descargar
+Hay dos formas. La primera es la recomendada.
+
+## Opción A: el instalador (recomendado)
+
+### 1. Descargar
 
 En el otro PC abre:
 
 <https://github.com/tacosandtypescript-debug/obs-edge-fade/releases/latest>
 
-y baja **`obs-edge-fade-0.2.0-windows-x64.zip`**.
+y baja **`OBS-Edge-Fade-Setup-0.2.0.exe`**.
 
-También sirve clonar el repositorio y usar la carpeta `dist/obs-edge-fade`, que
-es exactamente lo mismo.
+### 2. Ejecutarlo
 
-## 2. Descomprimir
+Doble clic. No hace falta ejecutar como administrador: el instalador escribe en
+la carpeta de plugins de OBS, que es escribible por usuarios normales. Si en tu
+equipo hiciera falta, te pedirá permisos él solo.
 
-Descomprime el ZIP. Dentro hay una única carpeta llamada `obs-edge-fade`.
+### 3. Pulsar "Instalar"
 
-> **Importante:** lo que se copia es esa carpeta, no los ficheros sueltos. Si
-> copias `bin` y `data` directamente en `plugins\`, OBS no encuentra el plugin.
+La ventana hace todo y va contando lo que hace:
 
-## 3. Copiar a OBS
+~~~text
+OBS Edge Fade 0.2.0 - installer
 
-1. Pulsa `Win + R`, escribe `%ProgramData%\obs-studio\plugins` y pulsa Enter.
-   Se abre la carpeta de plugins de OBS (si no existe, créala).
-2. Copia dentro la carpeta `obs-edge-fade` completa.
-3. Debe quedar exactamente así:
+OBS found: C:\Program Files\obs-studio\bin\64bit\obs64.exe
+Target:   C:\ProgramData\obs-studio\plugins\obs-edge-fade (OBS plugins folder)
+
+  wrote bin\64bit\obs-edge-fade.dll (17920 bytes)
+  wrote data\effects\edge-fade.effect (4477 bytes)
+  wrote data\locale\en-US.ini (431 bytes)
+  wrote data\locale\es-ES.ini (482 bytes)
+
+Installed and verified.
+~~~
+
+El instalador localiza OBS, elige la carpeta correcta, copia los ficheros y
+**comprueba byte a byte** lo que acaba de escribir. Si algo falla, lo dice.
+
+Si OBS estaba abierto, te ofrecerá cerrarlo. Sólo carga plugins al arrancar, así
+que hay que reiniciarlo (guarda antes cualquier grabación en curso).
+
+### 4. Usar el filtro
+
+Abre OBS, selecciona una fuente, pulsa **Filtros**, y abajo a la izquierda
+**+** → **`OBS Edge Fade - Edge Fade`**.
+
+Ajusta **Todos los bordes** con *Vincular* activado, o desmarca *Vincular* para
+controlar cada borde por separado.
+
+### Desinstalar
+
+Vuelve a ejecutar el mismo `.exe` con:
+
+~~~powershell
+.\OBS-Edge-Fade-Setup-0.2.0.exe /uninstall
+~~~
+
+O abre el instalador y usa el mismo botón, que en modo desinstalación borra la
+carpeta. También hay modo silencioso, útil para automatizar:
+
+~~~powershell
+.\OBS-Edge-Fade-Setup-0.2.0.exe /silent            # instalar sin ventana
+.\OBS-Edge-Fade-Setup-0.2.0.exe /silent /uninstall # desinstalar sin ventana
+~~~
+
+El código de salida es `0` si fue bien.
+
+## Opción B: a mano, con el ZIP
+
+Si prefieres no ejecutar un `.exe`, baja
+`obs-edge-fade-0.2.0-windows-x64.zip` del mismo release:
+
+1. Descomprímelo. Dentro hay una carpeta llamada `obs-edge-fade`.
+2. Pulsa `Win + R`, escribe `%ProgramData%\obs-studio\plugins` y Enter.
+3. Copia ahí la carpeta `obs-edge-fade` completa.
+
+> **El error más común:** lo que se copia es **esa carpeta**, no los ficheros de
+> dentro. Si copias `bin` y `data` sueltos en `plugins\`, OBS no encuentra nada.
+
+Debe quedar exactamente así:
 
 ~~~text
 %ProgramData%\obs-studio\plugins\obs-edge-fade\bin\64bit\obs-edge-fade.dll
@@ -37,44 +94,28 @@ Descomprime el ZIP. Dentro hay una única carpeta llamada `obs-edge-fade`.
 %ProgramData%\obs-studio\plugins\obs-edge-fade\data\locale\es-ES.ini
 ~~~
 
-Si Windows pide permisos de administrador para escribir ahí, acepta. Si no te
-deja, mira la sección "Si no tienes permisos" más abajo.
+Reinicia OBS.
 
-## 4. Comprobar que quedó bien
+## Comprobar que quedó bien
 
-Copia y pega esto en PowerShell (no hace falta ser administrador):
+Sin abrir OBS, pega esto en PowerShell:
 
 ~~~powershell
 $p = "$env:ProgramData\obs-studio\plugins\obs-edge-fade"
 "dll  : " + (Test-Path "$p\bin\64bit\obs-edge-fade.dll")
 "data : " + (Test-Path "$p\data\effects\edge-fade.effect")
-"locale: " + (Test-Path "$p\data\locale\es-ES.ini")
 ~~~
 
-Las tres líneas tienen que decir `True`. Si alguna dice `False`, la carpeta está
-en el sitio equivocado: revisa el paso 3.
+Las dos líneas deben decir `True`.
 
-También puedes usar el verificador del repositorio, que además arranca OBS y
-confirma que el filtro se registra:
+Si clonaste el repositorio en esa PC, hay un comprobador más completo que
+además lee el log de OBS:
 
 ~~~powershell
-python tools/install-to-obs.py --dll dist\obs-edge-fade\bin\64bit\obs-edge-fade.dll
+pwsh -File tools/check-install.ps1
 ~~~
 
-## 5. Reiniciar OBS
-
-Cierra OBS por completo (si estaba abierto) y vuelve a abrirlo. OBS sólo carga
-plugins al arrancar.
-
-## 6. Usar el filtro
-
-1. Selecciona una fuente en OBS (una cámara, una imagen, una captura...).
-2. Pulsa **Filtros**.
-3. Abajo a la izquierda, **+** → **`OBS Edge Fade - Edge Fade`**.
-4. Ajusta **Todos los bordes** (con *Vincular* activado) o desmarca *Vincular*
-   para controlar cada borde por separado.
-
-## Cómo saber que cargó
+## Cómo saber que OBS lo cargó
 
 En OBS: **Ayuda → Archivos de log → Ver log actual**. Busca `Edge Fade`; debe
 aparecer:
@@ -83,37 +124,39 @@ aparecer:
 [OBS Edge Fade] Plugin loaded (version 0.2.0)
 ~~~
 
-Si en su lugar ves algo como `Failed to load module` o no aparece nada, ve a la
-sección de problemas.
-
 ## Problemas frecuentes
 
 ### El plugin no aparece en la lista de filtros
 
 | Causa | Comprobación |
 |---|---|
-| La carpeta está en el sitio equivocado | Debe ser `...\plugins\obs-edge-fade\bin\64bit\obs-edge-fade.dll`. Si tienes `...\plugins\bin\64bit\...` falta el nivel de la carpeta. |
-| OBS no se reinició | Ciérralo del todo (revisa que no quede en la bandeja del sistema) y ábrelo otra vez. |
-| Versión de OBS distinta | El log dirá algo sobre el módulo. El plugin está compilado contra OBS 32.2.x. |
-| OBS en modo seguro | Si OBS arrancó en modo seguro, los plugins de terceros no se cargan. Reinícialo en modo normal. |
+| OBS no se reinició | Ciérralo del todo (mira que no quede en la bandeja del sistema) y ábrelo otra vez. |
+| La carpeta está un nivel mal | Debe ser `...\plugins\obs-edge-fade\bin\64bit\obs-edge-fade.dll`, no `...\plugins\bin\64bit\...`. |
+| OBS en modo seguro | En modo seguro no se cargan plugins de terceros. Reinícialo en modo normal. |
+| Versión de OBS distinta | El plugin está compilado contra OBS 32.2.x. Otra versión puede necesitar recompilarlo. |
 
-### Windows bloqueó el DLL
+### Windows bloqueó el fichero
 
-Si el ZIP se descargó de internet, Windows puede marcarlo. Desbloquéalo:
+Si Windows marca el `.exe` o el ZIP como descargado de internet:
 
-1. Clic derecho en el ZIP **antes** de descomprimirlo → **Propiedades**.
+1. Clic derecho → **Propiedades**.
 2. Abajo, marca **Desbloquear** → **Aceptar**.
-3. Descomprime otra vez.
 
-Si ya lo descomprimiste, haz lo mismo con `obs-edge-fade.dll`, o en PowerShell:
+O en PowerShell:
 
 ~~~powershell
-Unblock-File "$env:ProgramData\obs-studio\plugins\obs-edge-fade\bin\64bit\obs-edge-fade.dll"
+Unblock-File .\OBS-Edge-Fade-Setup-0.2.0.exe
 ~~~
 
-### Si no tienes permisos para escribir en ProgramData
+### El filtro aparece pero el fade se ve raro
 
-Instálalo sólo para tu usuario. Copia la carpeta `obs-edge-fade` a:
+Comprueba el log: si dice `Edge Fade effect could not be loaded, filter will
+bypass`, falta `data\effects\edge-fade.effect`. Pasa cuando se copió sólo el
+DLL. Vuelve a instalar con el instalador, que copia la carpeta completa.
+
+### No hay permisos para escribir en ProgramData
+
+Usa la carpeta por usuario. Copia `obs-edge-fade` a:
 
 ~~~text
 %APPDATA%\obs-studio\plugins\
@@ -121,19 +164,21 @@ Instálalo sólo para tu usuario. Copia la carpeta `obs-edge-fade` a:
 
 OBS lee las dos ubicaciones, así que funciona igual.
 
-### El filtro aparece pero el fade se ve raro
+## Cómo está hecho el instalador
 
-Comprueba el log: si dice `Edge Fade effect could not be loaded, filter will
-bypass`, falta el fichero `data\effects\edge-fade.effect`. Suele pasar cuando se
-copió sólo el DLL. Copia la carpeta `data` junto a `bin`.
+Por si quieres regenerarlo:
 
-## Desinstalar
+- `installer/Installer.cs` — el instalador. Un único ejecutable .NET sin
+  dependencias: usa el .NET Framework que ya viene con Windows.
+- `tools/make-installer-payload.ps1` — genera `installer/Payload.g.cs` con los
+  ficheros del plugin.
+- `tools/make-icon.ps1` — genera el icono.
+- `tools/build-installer.ps1` — compila el `.exe`.
+- `tools/package-release.ps1` — hace el ZIP y el `.exe` de una vez.
 
-Borra la carpeta:
-
-~~~text
-%ProgramData%\obs-studio\plugins\obs-edge-fade
+~~~powershell
+pwsh -File tools/package-release.ps1
 ~~~
 
-y reinicia OBS. Las escenas que usaban el filtro mostrarán un aviso de filtro
-desconocido hasta que lo quites de sus listas de filtros.
+Los ficheros del plugin van **dentro** del `.exe`, así que no puede desincronizarse
+con lo que hay en `dist/`: cada compilación los vuelve a leer.

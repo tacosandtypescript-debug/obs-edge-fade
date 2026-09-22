@@ -20,22 +20,31 @@ The filter is GPU-only, Qt-free and depends only on libobs.
 
 ## Installation
 
-No build required: the compiled plugin lives in this repository.
+No build required: a ready to run installer is published with every release.
 
-- **Latest release (recommended):**
-  [downloads](https://github.com/tacosandtypescript-debug/obs-edge-fade/releases/latest)
-  -> `obs-edge-fade-<version>-windows-x64.zip`
+1. Download `OBS-Edge-Fade-Setup-<version>.exe` from the
+   [latest release](https://github.com/tacosandtypescript-debug/obs-edge-fade/releases/latest).
+2. Run it and press **Install**. It finds OBS, copies the plugin into the folder
+   OBS reads and verifies what it wrote. No administrator rights needed.
+3. Restart OBS if it was open.
+
+Uninstall by running the same executable with `/uninstall`, or `/silent` for an
+unattended install.
+
+<details>
+<summary>Manual install from the ZIP</summary>
+
+- **Release ZIP:** `obs-edge-fade-<version>-windows-x64.zip` from the same
+  release page.
 - **Straight from the repo:** [`dist/obs-edge-fade`](dist/obs-edge-fade) holds the
   same tree, so a `git clone` is enough to get the built plugin.
 
-Then:
+Extract the `obs-edge-fade` folder into `%ProgramData%\obs-studio\plugins`, so
+the result is
+`%ProgramData%\obs-studio\plugins\obs-edge-fade\bin\64bit\obs-edge-fade.dll`
+with the `data` folder next to `bin`, then restart OBS.
 
-1. Extract the `obs-edge-fade` folder into the OBS plugins directory, which is
-   `%ProgramData%\obs-studio\plugins` for an all-users install.
-2. The result must be
-   `%ProgramData%\obs-studio\plugins\obs-edge-fade\bin\64bit\obs-edge-fade.dll`
-   with the `data` folder next to `bin`.
-3. Restart OBS.
+</details>
 
 The filter then appears in the **Filters** dialog of any source as:
 

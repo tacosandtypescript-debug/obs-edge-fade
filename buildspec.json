@@ -24,7 +24,7 @@
     },
     "name": "obs-edge-fade",
     "displayName": "OBS Edge Fade",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "author": "OBS Edge Fade contributors",
     "website": "https://github.com/tacosandtypescript-debug/obs-edge-fade",
     "email": "noreply@example.com"
