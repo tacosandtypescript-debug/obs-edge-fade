@@ -18,6 +18,12 @@ extern "C" {
 /** Shared limits used to clamp user settings before touching the GPU. */
 #define OEF_MAX_EDGE_FADE_PX 1000
 
+/**
+ * Marks the shared "all borders" width as not chosen yet, so the single slider
+ * falls back to the left side. Only 0..OEF_MAX_EDGE_FADE_PX are real widths.
+ */
+#define OEF_EDGE_FADE_UNIFORM_UNSET (-1)
+
 /** Edge fade curve modes. */
 enum oef_edge_curve {
 	OEF_EDGE_CURVE_LINEAR = 0,
