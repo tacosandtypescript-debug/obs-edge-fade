@@ -37,6 +37,7 @@ static void edge_fade_get_defaults(obs_data_t *settings)
 	edge_fade_settings_defaults(&defaults);
 
 	obs_data_set_default_bool(settings, EDGE_FADE_SETTING_LINKED, defaults.linked);
+	obs_data_set_default_int(settings, EDGE_FADE_SETTING_UNIFORM, OEF_EDGE_FADE_UNIFORM_UNSET);
 	obs_data_set_default_int(settings, EDGE_FADE_SETTING_LEFT, defaults.left);
 	obs_data_set_default_int(settings, EDGE_FADE_SETTING_RIGHT, defaults.right);
 	obs_data_set_default_int(settings, EDGE_FADE_SETTING_TOP, defaults.top);
@@ -51,6 +52,17 @@ static void edge_fade_update(void *data, obs_data_t *settings)
 	const struct edge_fade_settings previous = filter->settings;
 
 	filter->settings.linked = obs_data_get_bool(settings, EDGE_FADE_SETTING_LINKED);
+
+	/*
+	 * The shared "all borders" value is authoritative while linked: a scene
+	 * saved before that setting existed stores OEF_EDGE_FADE_UNIFORM_UNSET, and
+	 * then the left side seeds it, which is what the old linked mode did.
+	 */
+	int uniform = (int)obs_data_get_int(settings, EDGE_FADE_SETTING_UNIFORM);
+	if (uniform < 0)
+		uniform = (int)obs_data_get_int(settings, EDGE_FADE_SETTING_LEFT);
+	filter->settings.uniform = uniform;
+
 	filter->settings.left = (int)obs_data_get_int(settings, EDGE_FADE_SETTING_LEFT);
 	filter->settings.right = (int)obs_data_get_int(settings, EDGE_FADE_SETTING_RIGHT);
 	filter->settings.top = (int)obs_data_get_int(settings, EDGE_FADE_SETTING_TOP);
@@ -186,12 +198,15 @@ static void edge_fade_video_render(void *data, gs_effect_t *effect)
 	gs_effect_set_float(filter->param_smoothness, (float)filter->settings.smoothness / 100.0f);
 	gs_effect_set_float(filter->param_curve_mode, (float)filter->settings.curve);
 
-	gs_blend_state_push();
-	gs_blend_function(GS_BLEND_ONE, GS_BLEND_INVSRCALPHA);
-
+	/*
+	 * The blend state is deliberately left alone. OBS already selects the
+	 * correct blend for a filter pass before it draws, and the shader returns
+	 * the source texture scaled by the fade factor, so alpha alone decides how
+	 * visible a pixel is. Overriding it here used to premultiply the colour a
+	 * second time (the dark halo along the gradient) and square the written
+	 * alpha, which stopped the border from reaching full transparency.
+	 */
 	obs_source_process_filter_end(filter->context, filter->effect, width, height);
-
-	gs_blend_state_pop();
 }
 
 static enum gs_color_space edge_fade_video_get_color_space(void *data, size_t count,

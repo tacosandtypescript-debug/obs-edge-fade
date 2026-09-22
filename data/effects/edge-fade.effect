@@ -3,10 +3,25 @@
  *
  * Single-pass alpha fade near the source edges.
  *
- * fade is (left, right, top, bottom) in pixels.
- * smoothness is 0..1: 0 concentrates the transition at the very edge, 1 spreads
- * it across the whole fade extent.
- * curve_mode selects the falloff shape: 0 linear, 1 smooth, 2 soft.
+ * Goal of the filter:
+ *
+ *   interior = 100% visible -> progressive gradient -> outer border = fully
+ *   transparent.
+ *
+ * A side configured with N pixels therefore produces:
+ *
+ *   distance 0 px  (the very border) -> alpha factor 0
+ *   distance N px  (and inwards)     -> alpha factor 1
+ *
+ * and everything in between grows monotonically, so the transition always spans
+ * the full configured width and always reaches alpha 0 exactly on the border.
+ *
+ * Uniforms:
+ *   fade is (left, right, top, bottom) in pixels.
+ *   smoothness is 0..1 and only shapes the falloff inside the fade width; it
+ *   never moves the endpoints, so alpha stays 0 on the border and 1 at the fade
+ *   distance for every smoothness value.
+ *   curve_mode selects the falloff shape: 0 linear, 1 smooth, 2 soft.
  *
  * Positions use v_in.uv * source_size, i.e. y grows downwards with the origin at
  * the top-left corner.
@@ -40,20 +55,63 @@ VertInOut VSDefault(VertInOut vert_in)
 	return vert_out;
 }
 
-float edge_factor(float distance, float extent, float softness, float mode)
+float smoothstep01(float t)
+{
+	return t * t * (3.0 - 2.0 * t);
+}
+
+/* Keeps the endpoints and zero slope at both ends, so a curve built from it
+ * never shows a seam where the fade band starts. */
+float smootherstep01(float t)
+{
+	return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+}
+
+/*
+ * Maps "how far inside the fade band am I" (0 on the border, 1 at the fade
+ * distance) to an alpha factor.
+ *
+ * Every curve keeps f(0) = 0 and f(1) = 1, which is what guarantees that the
+ * border is fully transparent and the interior is untouched:
+ *
+ *   Linear -> straight ramp, constant falloff across the whole fade width.
+ *   Smooth -> smoothstep towards smootherstep. More smoothness flattens both
+ *             ends, so the visible transition moves to the middle of the band.
+ *   Soft   -> quadratic towards a gentler cubic. It stays below Smooth across
+ *             the whole band, so it is the most gradual of the three and the
+ *             border never shows a perceptible line.
+ *
+ * All three families have a bounded slope, so no combination of curve and
+ * smoothness can collapse the fade into a hard edge.
+ */
+float edge_curve(float t, float smoothness, float mode)
+{
+	const float s = clamp(smoothness, 0.0, 1.0);
+
+	t = clamp(t, 0.0, 1.0);
+
+	if (mode < 0.5)
+		return t;
+
+	if (mode < 1.5)
+		return lerp(smoothstep01(t), smootherstep01(t), s);
+
+	const float quadratic = t * t;
+	const float gentle = t * t * (2.0 - t);
+	return lerp(quadratic, gentle, s);
+}
+
+/*
+ * distance is how far the pixel sits from that particular edge, extent is the
+ * configured fade size in pixels for that edge. An extent of 0 disables the
+ * side without affecting the others.
+ */
+float edge_factor(float distance, float extent, float smoothness, float mode)
 {
 	if (extent <= 0.0)
 		return 1.0;
 
-	float start = extent * (1.0 - clamp(softness, 0.0, 1.0));
-	float width = max(extent - start, 0.0001);
-	float t = clamp((distance - start) / width, 0.0, 1.0);
-
-	if (mode < 0.5)
-		return t;
-	if (mode < 1.5)
-		return t * t * (3.0 - 2.0 * t);
-	return 1.0 - (1.0 - t) * (1.0 - t) * (1.0 - t);
+	return edge_curve(distance / extent, smoothness, mode);
 }
 
 float4 PSEdgeFade(VertInOut vert_in) : TARGET
@@ -66,9 +124,17 @@ float4 PSEdgeFade(VertInOut vert_in) : TARGET
 	float top = edge_factor(position.y, fade.z, smoothness, curve_mode);
 	float bottom = edge_factor(source_size.y - position.y, fade.w, smoothness, curve_mode);
 
-	/* The strongest fade wins, which keeps corners smooth. */
-	float factor = min(min(left, right), min(top, bottom));
+	/*
+	 * Multiplying the four factors keeps the corners clean: two crossing fades
+	 * can only ever make the corner more transparent, never brighter, and the
+	 * fade of one side never bleeds past its own extent. min() would behave the
+	 * same for these curves but the product stays correct for any curve shape.
+	 */
+	float factor = left * right * top * bottom;
 
+	/* Premultiplied output: the texture is already premultiplied, so scaling
+	 * both terms keeps the compositing invariant intact and only alpha decides
+	 * how visible the pixel is. */
 	return rgba * factor;
 }
 
