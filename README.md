@@ -46,6 +46,15 @@ OBS Edge Fade - Edge Fade
 Built against OBS Studio 32.2.x and verified loading in 32.2.1. Other OBS
 versions may need a rebuild (see "Building from source" below).
 
+Step by step instructions, including the common mistakes and what to do when
+Windows blocks the downloaded file, are in
+[docs/instalacion.md](docs/instalacion.md) (Spanish).
+To check an installation without launching OBS:
+
+~~~powershell
+pwsh -File tools/check-install.ps1
+~~~
+
 ## Edge Fade
 
 Reduces the alpha of the source progressively near its edges. Each side can be
